@@ -1,29 +1,34 @@
 import 'package:flutter/material.dart';
+import 'Preview.dart';
 
 class Customize extends StatefulWidget {
   final String product;
-  Customize({required this.product});
+  const Customize({super.key, required this.product});
 
   @override
-  _CustomizeState createState() => _CustomizeState();
+  State<Customize> createState() => _CustomizeState();
 }
 
 class _CustomizeState extends State<Customize> {
   Color selectedColor = Colors.purple[200]!;
-  String material = 'Hilo elástico';
-  double size = 18;
+  String material = 'Lana bambino';
+  int size = 15;
+  String character = '';
 
   @override
   Widget build(BuildContext context) {
+    bool isAmigurumi = widget.product.toLowerCase() == 'amigurumi';
+    bool isPapercraft = widget.product.toLowerCase() == 'papercraft';
+    bool isPulsera = widget.product.toLowerCase() == 'pulsera';
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Personalizar ${widget.product}'),
         backgroundColor: Colors.purple[200],
       ),
       body: ListView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         children: [
-          // Vista previa simple
           Container(
             height: 200,
             decoration: BoxDecoration(
@@ -33,14 +38,18 @@ class _CustomizeState extends State<Customize> {
             child: Center(
               child: Text(
                 'Vista previa de ${widget.product}',
-                style: TextStyle(fontSize: 18),
+                style: const TextStyle(fontSize: 18),
               ),
             ),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
 
-          // Selección de color
-          Text('Color base'),
+          // 🎨 SECCIÓN DE COLOR
+          const Text(
+            'Color base',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
           Wrap(
             spacing: 8,
             children: [
@@ -57,59 +66,110 @@ class _CustomizeState extends State<Customize> {
                   decoration: BoxDecoration(
                     color: color,
                     border: Border.all(
-                        width: selectedColor == color ? 3 : 1,
-                        color: Colors.purple),
+                      width: selectedColor == color ? 3 : 1,
+                      color: Colors.purple,
+                    ),
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
               );
             }).toList(),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
 
-          // Selección de material
-          Text('Material'),
-          DropdownButton<String>(
-            value: material,
-            items: ['Hilo elástico', 'Cuerda', 'Cuentas brillantes']
-                .map((m) => DropdownMenuItem(child: Text(m), value: m))
-                .toList(),
-            onChanged: (value) => setState(() => material = value!),
+          // 🧶 OPCIONES PARA AMIGURUMIS
+          if (isAmigurumi) ...[
+            const Text(
+              'Material',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            DropdownButton<String>(
+              value: material,
+              items: ['Lana bambino', 'Lana jazmín']
+                  .map((m) => DropdownMenuItem<String>(
+                        value: m,
+                        child: Text(m),
+                      ))
+                  .toList(),
+              onChanged: (value) => setState(() => material = value!),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Tamaño (cm)',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Disponemos personalizados de 14, 21 y 30 cm 💕',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black54,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 10,
+              children: [15, 21, 30].map((s) {
+                return ChoiceChip(
+                  label: Text('$s cm'),
+                  selected: size == s,
+                  onSelected: (_) => setState(() => size = s),
+                  selectedColor: Colors.purple[200],
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          // 💫 PERSONAJE (para ambos tipos)
+          Text(
+            'Personaje ${isPapercraft ? "(obligatorio)" : "(opcional)"}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 20),
-
-          // Selección de tamaño
-          Text('Tamaño (cm): ${size.toInt()}'),
-          Slider(
-            value: size,
-            min: 15,
-            max: 25,
-            divisions: 10,
-            label: size.toInt().toString(),
-            activeColor: Colors.purple[200],
-            inactiveColor: Colors.purple[100],
-            onChanged: (value) => setState(() => size = value),
+          const SizedBox(height: 6),
+          TextField(
+            onChanged: (value) => character = value,
+            decoration: InputDecoration(
+              hintText: 'Nombre o descripción del personaje',
+              filled: true,
+              fillColor: Colors.purple[50],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 30),
 
-          // Botón para ir a Preview
+          // 🌟 BOTÓN DE VISTA PREVIA
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple[200],
-                minimumSize: Size(double.infinity, 50)),
+              backgroundColor: Colors.purple[200],
+            ),
             onPressed: () {
-              Navigator.pushNamed(
+              if (isPapercraft && character.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Por favor ingresa un personaje'),
+                    backgroundColor: Colors.purple[200],
+                  ),
+                );
+                return;
+              }
+
+              Navigator.push(
                 context,
-                '/preview',
-                arguments: {
-                  'product': widget.product,
-                  'color': selectedColor,
-                  'material': material,
-                  'size': size,
-                },
+                MaterialPageRoute(
+                  builder: (context) => Preview(
+                    product: widget.product,
+                    color: selectedColor,
+                    character: character,
+                    size: size,
+                  ),
+                ),
               );
             },
-            child: Text('Ver vista previa ✨'),
+            child: const Text('Ver vista previa ✨'),
           ),
         ],
       ),

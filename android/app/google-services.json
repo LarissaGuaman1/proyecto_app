@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "216499397339",
+    "project_id": "appamigurumi-f5d6a",
+    "storage_bucket": "appamigurumi-f5d6a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:216499397339:android:d6df483525b6781a8f62fe",
+        "android_client_info": {
+          "package_name": "com.danahe.magicalcrafts"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNn114jamzd9AM5EcMfstdLGJtyTJ7hWA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

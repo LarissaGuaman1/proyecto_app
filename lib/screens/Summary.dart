@@ -1,22 +1,30 @@
 import 'package:flutter/material.dart';
 
 class Summary extends StatelessWidget {
+  final String product;
+  final Color color;
+  final String material;
+  final double size;
+  final String character;
+
+  const Summary({
+    super.key,
+    required this.product,
+    required this.color,
+    required this.material,
+    required this.size,
+    required this.character,
+  });
+
   @override
   Widget build(BuildContext context) {
-    // Recibir los argumentos de Preview
-    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    final String product = args['product'];
-    final Color color = args['color'];
-    final String material = args['material'];
-    final double size = args['size'];
-
     return Scaffold(
       appBar: AppBar(
-        title: Text('Resumen del pedido'),
+        title: const Text('Resumen del pedido'),
         backgroundColor: Colors.purple[200],
       ),
       body: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             Card(
@@ -32,22 +40,27 @@ class Summary extends StatelessWidget {
                 ),
                 title: Text('$product personalizado'),
                 subtitle: Text(
-                    'Color: ${color.toString()}\nMaterial: $material\nTamaño: ${size.toInt()} cm\nPrecio: \$8.50'),
+                  'Color: ${color.toString()}\n'
+                  'Material: $material\n'
+                  'Tamaño: ${size.toInt()} cm\n'
+                  'Personaje: ${character.isEmpty ? "Ninguno" : character}\n'
+                  'Precio: \$8.50',
+                ),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[200]),
               onPressed: () {
                 Navigator.pushNamed(context, '/confirmation');
               },
-              child: Text('Enviar por WhatsApp'),
+              child: const Text('Enviar por WhatsApp'),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             OutlinedButton(
               style: OutlinedButton.styleFrom(backgroundColor: Colors.purple[50]),
               onPressed: () {},
-              child: Text('Guardar diseño'),
+              child: const Text('Guardar diseño'),
             ),
           ],
         ),
