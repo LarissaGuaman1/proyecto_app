@@ -1,16 +1,3 @@
-// Archivo: android/build.gradle
-
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.0.2' // según tu Flutter
-        classpath 'com.google.gms:google-services:4.3.15' // Firebase
-    }
-}
-
 allprojects {
     repositories {
         google()
@@ -28,7 +15,6 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
-
 subprojects {
     project.evaluationDependsOn(":app")
 }

@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -20,88 +22,158 @@ class _RegisterState extends State<Register> {
   String name = '';
   String email = '';
   String password = '';
-  File? profileImage;
+
+  Uint8List? webImage;
+  XFile? pickedFile;
 
   bool isLoading = false;
 
+  //------------------------------------------------
+  // 📌 SELECCIONAR IMAGEN
+  //------------------------------------------------
   Future<void> pickImage() async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      final bytes = await image.readAsBytes();
       setState(() {
-        profileImage = File(pickedFile.path);
+        webImage = bytes;
+        pickedFile = image;
       });
     }
   }
 
+  //------------------------------------------------
+  // 📌 SUBIR IMAGEN (WEB + ANDROID)
+  //------------------------------------------------
   Future<String?> uploadProfileImage(String uid) async {
-    if (profileImage == null) return null;
+    if (pickedFile == null && webImage == null) {
+      print("⚠ No hay imagen seleccionada.");
+      return null;
+    }
 
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('profile_images')
-        .child('$uid.jpg');
+    try {
+      // Detectar extensión real
+      String ext = pickedFile != null
+          ? pickedFile!.name.split('.').last
+          : 'jpg';
 
-    await ref.putFile(profileImage!);
-    return await ref.getDownloadURL();
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('profile_images/$uid.$ext');
+
+      UploadTask uploadTask;
+
+      if (kIsWeb) {
+        // Para Web
+        uploadTask = ref.putData(
+          webImage!,
+          SettableMetadata(contentType: 'image/$ext'),
+        );
+      } else {
+        // Para Android
+        final File file = File(pickedFile!.path);
+
+        if (!await file.exists()) {
+          print("❌ ERROR: archivo no existe en Android");
+          return null;
+        }
+
+        uploadTask = ref.putFile(
+          file,
+          SettableMetadata(contentType: 'image/$ext'),
+        );
+      }
+
+      final snapshot = await uploadTask;
+      return await snapshot.ref.getDownloadURL();
+
+    } catch (e) {
+      print("❌ Error subiendo imagen: $e");
+      return null;
+    }
   }
 
+  //------------------------------------------------
+  // 📌 REGISTRAR USUARIO
+  //------------------------------------------------
   Future<void> registerUser() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     try {
-      // Crear usuario con Firebase Auth
+      print("🔵 Creando usuario...");
+
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-          email: email.trim(), password: password.trim());
+        email: email.trim(),
+        password: password.trim(),
+      );
+
       final uid = userCredential.user!.uid;
 
-      // Subir imagen de perfil si existe
+      print("🟣 Subiendo imagen...");
       String? profileUrl = await uploadProfileImage(uid);
 
-      // Guardar datos en Firestore
+      print("🟢 Guardando datos en Firestore...");
+
       await _firestore.collection('users').doc(uid).set({
+        'uid': uid,
         'name': name,
         'email': email,
         'profileImage': profileUrl ?? '',
+        'role': 'user',
+        'createdAt': DateTime.now(),
+        'lastLogin': DateTime.now(),
       });
 
-      // Ir a Home
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/home');
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Error al registrarse';
+
       if (e.code == 'email-already-in-use') {
         message = 'El correo ya está registrado';
       } else if (e.code == 'weak-password') {
         message = 'La contraseña es muy débil';
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(message)));
-      }
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+
+      print("❌ FirebaseAuthException: ${e.code}");
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
+
+      print("❌ Error general: $e");
     } finally {
       if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
+        setState(() => isLoading = false);
       }
     }
   }
 
+  //------------------------------------------------
+  // 📌 UI
+  //------------------------------------------------
   @override
   Widget build(BuildContext context) {
+    final imageWidget = webImage != null
+        ? CircleAvatar(radius: 50, backgroundImage: MemoryImage(webImage!))
+        : const CircleAvatar(
+            radius: 50,
+            backgroundColor: Color(0xFFE1BEE7),
+            child: Icon(Icons.person, size: 50, color: Colors.white),
+          );
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrarse')),
+      appBar: AppBar(
+        title: const Text('Registrarse'),
+        backgroundColor: Colors.purple[200],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -111,16 +183,10 @@ class _RegisterState extends State<Register> {
               children: [
                 GestureDetector(
                   onTap: pickImage,
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundImage:
-                        profileImage != null ? FileImage(profileImage!) : null,
-                    child: profileImage == null
-                        ? const Icon(Icons.person, size: 50)
-                        : null,
-                  ),
+                  child: imageWidget,
                 ),
                 const SizedBox(height: 16),
+
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Nombre'),
                   onChanged: (val) => name = val,
@@ -128,36 +194,46 @@ class _RegisterState extends State<Register> {
                       val == null || val.isEmpty ? 'Ingresa tu nombre' : null,
                 ),
                 const SizedBox(height: 16),
+
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Correo'),
-                  keyboardType: TextInputType.emailAddress,
                   onChanged: (val) => email = val,
                   validator: (val) =>
-                      val == null || !val.contains('@') ? 'Correo inválido' : null,
+                      val != null && val.contains('@')
+                          ? null
+                          : 'Correo inválido',
                 ),
                 const SizedBox(height: 16),
+
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Contraseña'),
                   obscureText: true,
                   onChanged: (val) => password = val,
                   validator: (val) =>
-                      val == null || val.length < 6 ? 'Mínimo 6 caracteres' : null,
+                      val != null && val.length >= 6
+                          ? null
+                          : 'Mínimo 6 caracteres',
                 ),
                 const SizedBox(height: 24),
+
                 ElevatedButton(
                   onPressed: isLoading ? null : registerUser,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple[200],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
                   child: isLoading
-                      ? const CircularProgressIndicator(
-                          color: Colors.white,
-                        )
+                      ? const CircularProgressIndicator(color: Colors.white)
                       : const Text('Registrarse'),
                 ),
+
                 TextButton(
-                  onPressed: () {
-                    Navigator.pushReplacementNamed(context, '/login');
-                  },
+                  onPressed: () =>
+                      Navigator.pushReplacementNamed(context, '/login'),
                   child: const Text('¿Ya tienes cuenta? Inicia sesión'),
-                )
+                ),
               ],
             ),
           ),

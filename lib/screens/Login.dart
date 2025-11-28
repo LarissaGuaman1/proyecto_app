@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -29,12 +30,23 @@ class _LoginState extends State<Login> {
     });
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      // 🔵 INICIAR SESIÓN
+      UserCredential credential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
+
+      final uid = credential.user!.uid;
+
+      // 🔄 🔥 Actualizar la última fecha de inicio de sesión
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'lastLogin': DateTime.now(),
+      });
+
       // Redirige a Home
       Navigator.pushReplacementNamed(context, '/home');
+
     } on FirebaseAuthException catch (e) {
       String message = '';
       if (e.code == 'user-not-found') {
@@ -69,10 +81,11 @@ class _LoginState extends State<Login> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                "/src/flutter/examples/Cuarto/proyecto/lib/assets/images/logo.png", 
+                "assets/images/logo.png",
                 height: 120,
               ),
               const SizedBox(height: 30),
+
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -86,6 +99,7 @@ class _LoginState extends State<Login> {
                 ),
               ),
               const SizedBox(height: 10),
+
               TextField(
                 controller: passwordController,
                 obscureText: true,
@@ -98,7 +112,9 @@ class _LoginState extends State<Login> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 20),
+
               Row(
                 children: [
                   Expanded(
@@ -112,13 +128,13 @@ class _LoginState extends State<Login> {
                         ),
                       ),
                       child: isLoading
-                          ? const CircularProgressIndicator(
-                              color: Colors.white,
-                            )
+                          ? const CircularProgressIndicator(color: Colors.white)
                           : const Text('Ingresar', style: TextStyle(fontSize: 18)),
                     ),
                   ),
+
                   const SizedBox(width: 10),
+
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
@@ -137,7 +153,9 @@ class _LoginState extends State<Login> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 10),
+
               TextButton(
                 onPressed: () {
                   showDialog(

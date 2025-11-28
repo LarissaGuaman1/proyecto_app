@@ -9,7 +9,7 @@ class Confirmation extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Lottie.asset("/src/flutter/examples/Cuarto/proyecto/lib/assets/lottie/success.json", width: 150),
+            Lottie.asset("assets/lottie/success.json", width: 150),
             SizedBox(height: 20),
             Text(
               '¡Pedido enviado con éxito!',
